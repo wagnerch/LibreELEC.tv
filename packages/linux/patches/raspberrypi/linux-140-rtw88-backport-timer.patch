@@ -1,0 +1,36 @@
+From d3e777c44a67b72b6a2e3a6957991024e254fc77 Mon Sep 17 00:00:00 2001
+From: Chad Wagner <47257594+wagnerch@users.noreply.github.com>
+Date: Sun, 13 Aug 2023 10:01:19 -0400
+Subject: [PATCH] rtw88: backport timer
+
+---
+ drivers/net/wireless/realtek/rtw88/main.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index 4a33d2e47f33..8ff5d0933c4c 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -3,6 +3,7 @@
+  */
+ 
+ #include <linux/devcoredump.h>
++#include <linux/version.h>
+ 
+ #include "main.h"
+ #include "regd.h"
+@@ -2181,7 +2182,11 @@ void rtw_core_deinit(struct rtw_dev *rtwdev)
+ 		release_firmware(wow_fw->firmware);
+ 
+ 	destroy_workqueue(rtwdev->tx_wq);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+ 	timer_delete_sync(&rtwdev->tx_report.purge_timer);
++#else
++	del_timer_sync(&rtwdev->tx_report.purge_timer);
++#endif
+ 	spin_lock_irqsave(&rtwdev->tx_report.q_lock, flags);
+ 	skb_queue_purge(&rtwdev->tx_report.queue);
+ 	spin_unlock_irqrestore(&rtwdev->tx_report.q_lock, flags);
+-- 
+2.34.1
+
