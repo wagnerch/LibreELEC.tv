@@ -22,6 +22,7 @@ case "${PROJECT}" in
     PKG_SHA256="eed6678e9a1877a5bd36b7ea85c510a41f17c172f045153ec8f177bf477f4fc1"
     PKG_URL="https://github.com/chewitt/ffmpeg/archive/${PKG_VERSION}.tar.gz"
     PKG_FFMPEG_BRANCH="armsoc-9.0.2"
+    PKG_PATCH_DIRS+=" amlogic"
     PKG_SOURCE_NAME="ffmpeg-${PKG_VERSION}.tar.gz"
     ;;
   Generic)

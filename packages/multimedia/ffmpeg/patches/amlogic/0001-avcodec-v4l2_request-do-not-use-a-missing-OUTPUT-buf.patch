@@ -1,0 +1,44 @@
+From 71245a3cba33695d553ee91e207cdeac5269a880 Mon Sep 17 00:00:00 2001
+From: Chad Wagner <47257594+wagnerch@users.noreply.github.com>
+Date: Sun, 15 Nov 2026 21:09:21 -0500
+Subject: [PATCH] avcodec/v4l2_request: do not use a missing OUTPUT buffer
+
+v4l2_request_next_output() returns NULL when it times out waiting for an
+OUTPUT buffer or fails to dequeue one, which happens when the V4L2
+decoder aborts a session. start_frame() then fails, but pic->output stays
+NULL and the decoder still calls decode_slice()/end_frame() for the
+frame, which dereferences it in v4l2_request_wait_on_request() and
+crashes the player. Return an error instead.
+---
+ libavcodec/v4l2_request.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/libavcodec/v4l2_request.c b/libavcodec/v4l2_request.c
+index 36eec85..c04bb1a 100644
+--- a/libavcodec/v4l2_request.c
++++ b/libavcodec/v4l2_request.c
+@@ -339,6 +339,10 @@ int ff_v4l2_request_append_output(AVCodecContext *avctx,
+ {
+     V4L2RequestContext *ctx = v4l2_request_context(avctx);
+ 
++    // start_frame() failed or was never called, there is no OUTPUT buffer
++    if (!pic->output)
++        return AVERROR(EINVAL);
++
+     // Append data to OUTPUT buffer and ensure there is enough space for padding
+     if (pic->output->bytesused + size + AV_INPUT_BUFFER_PADDING_SIZE <= pic->output->size) {
+         memcpy(pic->output->addr + pic->output->bytesused, data, size);
+@@ -361,6 +365,10 @@ static int v4l2_request_queue_decode(AVCodecContext *avctx,
+     uint32_t flags;
+     int ret;
+ 
++    // start_frame() failed or was never called, there is no OUTPUT buffer
++    if (!pic->output)
++        return AVERROR(EINVAL);
++
+     if (first_slice) {
+         /*
+          * Wait on dequeue of the target CAPTURE buffer. Otherwise V4L2 decoder
+-- 
+2.53.0
+
